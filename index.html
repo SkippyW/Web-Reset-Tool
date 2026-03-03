@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Makita Battery Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+            text-align: center;
+            user-select: none; 
+        }
+
+        /* --- HARDWARE LOCK OVERLAY --- */
+        #lockScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #f4f4f9;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #lockScreen h2 { margin-bottom: 10px; }
+        #authStatus {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #d9534f;
+            height: 20px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: #0078D7;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        button:hover:not(:disabled) { background-color: #005A9E; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        #disconnectBtn { background-color: #d9534f; }
+        #disconnectBtn:hover { background-color: #c9302c; }
+        .action-btn { background-color: #28a745; }
+        .action-btn:hover:not(:disabled) { background-color: #218838; }
+        
+        #statusIndicator {
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .disconnected { color: #d9534f; }
+        .connected { color: #5cb85c; }
+        
+        #dashboard {
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            font-size: 15px;
+        }
+        th {
+            background-color: #e0e0e0;
+            color: #333;
+            font-weight: bold;
+            border-bottom: 2px solid #ccc;
+        }
+        tr:nth-of-type(even) { background-color: #f9f9f9; }
+        
+        .badge-locked { background-color: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-weight: bold; display: inline-block; border: 1px solid #f5c6cb; }
+        .badge-unlocked { background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-weight: bold; display: inline-block; border: 1px solid #c3e6cb; }
+
+        #terminal {
+            background-color: #1e1e1e;
+            color: #00ff00;
+            text-align: left;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-top: 20px;
+            user-select: text; 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="lockScreen">
+        <h2>🔒 Device Required</h2>
+        <p>Please connect your authorized Makita Battery Tool to unlock this application.</p>
+        <button id="authConnectBtn">Connect Device</button>
+        <div id="authStatus"></div>
+    </div>
+
+    <h1>🔋 Makita Battery Tool</h1>
+    <div id="statusIndicator" class="disconnected">Status: Disconnected</div>
+    <div class="controls">
+        <button id="disconnectBtn">Disconnect</button>
+    </div>
+    <div class="controls">
+        <button id="readDataBtn" class="action-btn">Read Data</button>
+        <button id="ledOnBtn" class="action-btn">LEDs ON</button>
+        <button id="ledOffBtn" class="action-btn">LEDs OFF</button>
+        <button id="clearErrorsBtn" class="action-btn">Clear Errors</button>
+    </div>
+
+    <div id="dashboard">
+        <table>
+            <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+            <tbody>
+                <tr><td>Model</td><td id="val-model">-</td></tr>
+                <tr><td>Charge count*</td><td id="val-charge">-</td></tr>
+                <tr><td>State</td><td><span id="val-state">-</span></td></tr>
+                <tr><td>Status code</td><td id="val-status">-</td></tr>
+                <tr><td>Pack Voltage</td><td id="val-pack">-</td></tr>
+                <tr><td>Cell 1 Voltage</td><td id="val-cell1">-</td></tr>
+                <tr><td>Cell 2 Voltage</td><td id="val-cell2">-</td></tr>
+                <tr><td>Cell 3 Voltage</td><td id="val-cell3">-</td></tr>
+                <tr><td>Cell 4 Voltage</td><td id="val-cell4">-</td></tr>
+                <tr><td>Cell 5 Voltage</td><td id="val-cell5">-</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="terminal">System Ready...</div>
+
+    <script>
+const _0x12ff01=_0x50de;(function(_0x1b2ad0,_0x2b2f46){const _0x328a7a=_0x50de,_0x4b75e2=_0x1b2ad0();while(!![]){try{const _0x5df5c2=-parseInt(_0x328a7a(0x204))/0x1+-parseInt(_0x328a7a(0x1e8))/0x2*(-parseInt(_0x328a7a(0x223))/0x3)+parseInt(_0x328a7a(0x208))/0x4+parseInt(_0x328a7a(0x1fd))/0x5+-parseInt(_0x328a7a(0x241))/0x6+-parseInt(_0x328a7a(0x1de))/0x7+parseInt(_0x328a7a(0x21e))/0x8;if(_0x5df5c2===_0x2b2f46)break;else _0x4b75e2['push'](_0x4b75e2['shift']());}catch(_0xa825d6){_0x4b75e2['push'](_0x4b75e2['shift']());}}}(_0x58ca,0xf2314));const _0x455f36=(function(){let _0x4083df=!![];return function(_0xa7ddd9,_0x143163){const _0x2dc903=_0x4083df?function(){const _0x1c6924=_0x50de;if(_0x143163){const _0x121043=_0x143163[_0x1c6924(0x206)](_0xa7ddd9,arguments);return _0x143163=null,_0x121043;}}:function(){};return _0x4083df=![],_0x2dc903;};}()),_0x556fe9=_0x455f36(this,function(){const _0x1a0202=_0x50de;return _0x556fe9[_0x1a0202(0x214)]()[_0x1a0202(0x23b)](_0x1a0202(0x23d))['toString']()[_0x1a0202(0x21c)](_0x556fe9)[_0x1a0202(0x23b)](_0x1a0202(0x23d));});function _0x58ca(){const _0x3ba152=['flex','constructor','LEDS_ON','12489664XtiOcK','className','message','debu','warn','3891RldMAC','call','val-charge','return\x20(function()\x20','input','exception','toFixed','counter','STATIC_INFO','val-cell3','releaseLock','trace','toUpperCase','set','style','Authenticating\x20Device...','length','none','action','readDataBtn','table','\x0a[Read\x20Error:\x20','display','byteLength','search','badge-unlocked','(((.+)+)+)+$','clearErrorsBtn','LOCKED','test','5060718YOreDo','padStart','Device\x20Verified\x20Successfully.\x0a','info','4520460zXubcs','val-cell1','\x0a[Data\x20Packet\x20Received\x20-\x20Processing...]\x0a','click','textContent','stateObject','readable','val-state','TESTMODE','setInterval','1348kIJsJT','\x0a[Sent\x20Command:\x20','authConnectBtn','slice','getWriter','RESET_ERROR','write','disconnectBtn','disabled','badge-locked','Healthy\x20/\x20Normal','init','LEDS_OFF','val-cell5','Authentication\x20failed.','connected','console','MODEL','ledOnBtn','getReader','{}.constructor(\x22return\x20this\x22)(\x20)','2421060xoqWIb','bind','val-status','#d9534f','UNLOCKED','VOLTAGES','scrollTop','705206mzbqkF','addEventListener','apply','cancel','1067444WOcXyD','ledOffBtn','getUint16','byteOffset','gger','AUTH','color','authStatus','read','writable','trim','serial','toString','getElementById','__proto__','Connection\x20Failed:\x20','terminal','Waking\x20up\x20device...','fromCharCode'];_0x58ca=function(){return _0x3ba152;};return _0x58ca();}_0x556fe9();const _0x373b1a=(function(){let _0x2a4e2b=!![];return function(_0x5b8cb,_0x4b57df){const _0x281a0b=_0x2a4e2b?function(){const _0xaabb19=_0x50de;if(_0x4b57df){const _0x18dd08=_0x4b57df[_0xaabb19(0x206)](_0x5b8cb,arguments);return _0x4b57df=null,_0x18dd08;}}:function(){};return _0x2a4e2b=![],_0x281a0b;};}());(function(){_0x373b1a(this,function(){const _0x49117a=_0x50de,_0x12661c=new RegExp('function\x20*\x5c(\x20*\x5c)'),_0x4fc582=new RegExp('\x5c+\x5c+\x20*(?:[a-zA-Z_$][0-9a-zA-Z_$]*)','i'),_0x4a7259=_0x403c13(_0x49117a(0x1f3));!_0x12661c[_0x49117a(0x240)](_0x4a7259+'chain')||!_0x4fc582[_0x49117a(0x240)](_0x4a7259+_0x49117a(0x227))?_0x4a7259('0'):_0x403c13();})();}());const _0x5bc225=(function(){let _0x6271fe=!![];return function(_0x6b8d0f,_0x146339){const _0x21d426=_0x6271fe?function(){if(_0x146339){const _0xb8c77f=_0x146339['apply'](_0x6b8d0f,arguments);return _0x146339=null,_0xb8c77f;}}:function(){};return _0x6271fe=![],_0x21d426;};}()),_0x34721a=_0x5bc225(this,function(){const _0x37b33c=_0x50de,_0x377b4b=function(){const _0x2538b1=_0x50de;let _0x3e023c;try{_0x3e023c=Function(_0x2538b1(0x226)+_0x2538b1(0x1fc)+');')();}catch(_0x525062){_0x3e023c=window;}return _0x3e023c;},_0x3f9409=_0x377b4b(),_0x590212=_0x3f9409[_0x37b33c(0x1f8)]=_0x3f9409[_0x37b33c(0x1f8)]||{},_0xdb811a=['log',_0x37b33c(0x222),_0x37b33c(0x244),'error',_0x37b33c(0x228),_0x37b33c(0x237),_0x37b33c(0x22e)];for(let _0x58e9e3=0x0;_0x58e9e3<_0xdb811a[_0x37b33c(0x233)];_0x58e9e3++){const _0x58398d=_0x5bc225[_0x37b33c(0x21c)]['prototype'][_0x37b33c(0x1fe)](_0x5bc225),_0x53741f=_0xdb811a[_0x58e9e3],_0x41bcc8=_0x590212[_0x53741f]||_0x58398d;_0x58398d[_0x37b33c(0x216)]=_0x5bc225[_0x37b33c(0x1fe)](_0x5bc225),_0x58398d[_0x37b33c(0x214)]=_0x41bcc8[_0x37b33c(0x214)]['bind'](_0x41bcc8),_0x590212[_0x53741f]=_0x58398d;}});_0x34721a();const authConnectBtn=document['getElementById'](_0x12ff01(0x1ea)),lockScreen=document[_0x12ff01(0x215)]('lockScreen'),authStatus=document['getElementById'](_0x12ff01(0x20f)),disconnectBtn=document[_0x12ff01(0x215)](_0x12ff01(0x1ef)),statusIndicator=document[_0x12ff01(0x215)]('statusIndicator'),terminal=document[_0x12ff01(0x215)](_0x12ff01(0x218)),readDataBtn=document[_0x12ff01(0x215)](_0x12ff01(0x236)),ledOnBtn=document['getElementById'](_0x12ff01(0x1fa)),ledOffBtn=document[_0x12ff01(0x215)](_0x12ff01(0x209)),clearErrorsBtn=document[_0x12ff01(0x215)](_0x12ff01(0x23e));let port,reader,keepReading=![],rxBuffer=new Uint8Array(0x0),isAuthenticated=![];function _0x50de(_0x1bca0b,_0x263605){_0x1bca0b=_0x1bca0b-0x1de;const _0x483db4=_0x58ca();let _0x34721a=_0x483db4[_0x1bca0b];return _0x34721a;}const KNOWN_STATUS_CODES={'67':_0x12ff01(0x1f2)},AUTH_CMD=[0x1,0x0,0x0,0x99],READ_DATA_REQUEST=[0x1,0x4,0x1d,0xcc,0xd7,0x0,0x0,0xff],MODEL_CMD=[0x1,0x2,0x10,0xcc,0xdc,0xc],READ_MSG_CMD=[0x1,0x2,0x28,0x33,0xaa,0x0],TESTMODE_CMD=[0x1,0x3,0x9,0x33,0xd9,0x96,0xa5],LEDS_ON_CMD=[0x1,0x2,0x9,0x33,0xda,0x31],LEDS_OFF_CMD=[0x1,0x2,0x9,0x33,0xda,0x34],RESET_ERROR_CMD=[0x1,0x2,0x9,0x33,0xda,0x4];(function(){const _0x90adae=_0x12ff01;let _0x40c13a;try{const _0x25b5ca=Function(_0x90adae(0x226)+'{}.constructor(\x22return\x20this\x22)(\x20)'+');');_0x40c13a=_0x25b5ca();}catch(_0x5ac22b){_0x40c13a=window;}_0x40c13a[_0x90adae(0x1e7)](_0x403c13,0xbb8);}());async function sendBytes(_0x2de157,_0x2ba92d){const _0x33c196=_0x12ff01;if(!port||!port['writable'])return;try{const _0x2984f4=port[_0x33c196(0x211)][_0x33c196(0x1ec)]();await _0x2984f4[_0x33c196(0x1ee)](new Uint8Array(_0x2ba92d)),_0x2984f4[_0x33c196(0x22d)]();if(isAuthenticated)terminal['textContent']+=_0x33c196(0x1e9)+_0x2de157+']\x0a';if(isAuthenticated)terminal['scrollTop']=terminal['scrollHeight'];}catch(_0x245049){if(isAuthenticated)terminal[_0x33c196(0x1e2)]+='\x0a[Send\x20Error:\x20'+_0x245049[_0x33c196(0x220)]+']\x0a';}}async function connectAndAuthenticate(){const _0x571e1b=_0x12ff01;try{port=await navigator[_0x571e1b(0x213)]['requestPort'](),await port['open']({'baudRate':0x2580}),authStatus[_0x571e1b(0x1e2)]=_0x571e1b(0x219),authStatus['style'][_0x571e1b(0x20e)]='#0078D7',keepReading=!![],readLoop(),await new Promise(_0x1bf4b0=>setTimeout(_0x1bf4b0,0x7d0)),authStatus[_0x571e1b(0x1e2)]=_0x571e1b(0x232),rxBuffer=new Uint8Array(0x0),await sendBytes(_0x571e1b(0x20d),AUTH_CMD),setTimeout(()=>{const _0x5b6d8f=_0x571e1b;!isAuthenticated&&(authStatus[_0x5b6d8f(0x1e2)]=_0x5b6d8f(0x1f6),authStatus[_0x5b6d8f(0x231)][_0x5b6d8f(0x20e)]=_0x5b6d8f(0x200),disconnectDevice());},0x7d0);}catch(_0x1da700){authStatus[_0x571e1b(0x1e2)]=_0x571e1b(0x217)+_0x1da700['message'],authStatus[_0x571e1b(0x231)]['color']='#d9534f';}}async function disconnectDevice(){const _0x408d57=_0x12ff01;keepReading=![];if(reader)await reader[_0x408d57(0x207)]();if(port)await port['close']();port=null,isAuthenticated=![],lockScreen['style'][_0x408d57(0x239)]=_0x408d57(0x21b),statusIndicator[_0x408d57(0x1e2)]='Status:\x20Disconnected',statusIndicator[_0x408d57(0x21f)]='disconnected',authConnectBtn[_0x408d57(0x1f0)]=![];}authConnectBtn['addEventListener']('click',()=>{const _0xfa55cd=_0x12ff01;authConnectBtn[_0xfa55cd(0x1f0)]=!![],authStatus[_0xfa55cd(0x1e2)]='',connectAndAuthenticate();}),disconnectBtn['addEventListener']('click',()=>{const _0x510c40=_0x12ff01;authStatus[_0x510c40(0x1e2)]='',disconnectDevice();});async function readLoop(){const _0x4f7332=_0x12ff01;reader=port[_0x4f7332(0x1e4)][_0x4f7332(0x1fb)]();try{while(keepReading){const {value:_0x596254,done:_0x52ca17}=await reader[_0x4f7332(0x210)]();if(_0x52ca17)break;const _0x43807d=new Uint8Array(rxBuffer[_0x4f7332(0x233)]+_0x596254[_0x4f7332(0x233)]);_0x43807d[_0x4f7332(0x230)](rxBuffer),_0x43807d[_0x4f7332(0x230)](_0x596254,rxBuffer[_0x4f7332(0x233)]),rxBuffer=_0x43807d;while(rxBuffer[_0x4f7332(0x233)]>=0x2){if(rxBuffer[0x0]!==0xcc&&rxBuffer[0x0]!==0x33&&rxBuffer[0x0]!==0x99){rxBuffer=rxBuffer[_0x4f7332(0x1eb)](0x1);continue;}const _0x48cf4e=rxBuffer[0x0],_0x421e06=rxBuffer[0x1],_0xfdd3b9=_0x421e06+0x2;if(rxBuffer[_0x4f7332(0x233)]>=_0xfdd3b9){const _0xd03e8=rxBuffer[_0x4f7332(0x1eb)](0x0,_0xfdd3b9);rxBuffer=rxBuffer[_0x4f7332(0x1eb)](_0xfdd3b9);if(_0x48cf4e===0x99)_0xd03e8[0x2]===0x11&&_0xd03e8[0x3]===0x22&&_0xd03e8[0x4]===0x33&&_0xd03e8[0x5]===0x44&&(isAuthenticated=!![],lockScreen['style'][_0x4f7332(0x239)]=_0x4f7332(0x234),statusIndicator['textContent']='Status:\x20Connected\x20&\x20Verified',statusIndicator[_0x4f7332(0x21f)]=_0x4f7332(0x1f7),terminal[_0x4f7332(0x1e2)]+=_0x4f7332(0x243));else{if(isAuthenticated){terminal['textContent']+=_0x4f7332(0x1e0),terminal[_0x4f7332(0x203)]=terminal['scrollHeight'];if(_0x48cf4e===0xcc&&_0x421e06===0x1d)parseVoltages(_0xd03e8);else{if(_0x48cf4e===0xcc&&_0x421e06===0x10)parseModel(_0xd03e8);else{if(_0x48cf4e===0x33&&_0x421e06===0x28)parseStaticInfo(_0xd03e8);}}}}}else break;}}}catch(_0x33910e){if(isAuthenticated)terminal[_0x4f7332(0x1e2)]+=_0x4f7332(0x238)+_0x33910e['message']+']\x0a';}finally{reader[_0x4f7332(0x22d)]();}}function parseVoltages(_0x5807cd){const _0x35173c=_0x12ff01,_0x20d3e7=new DataView(_0x5807cd['buffer'],_0x5807cd[_0x35173c(0x20b)],_0x5807cd[_0x35173c(0x23a)]);document['getElementById']('val-pack')['textContent']=(_0x20d3e7['getUint16'](0x2,!![])/0x3e8)['toFixed'](0x3),document[_0x35173c(0x215)](_0x35173c(0x1df))[_0x35173c(0x1e2)]=(_0x20d3e7[_0x35173c(0x20a)](0x4,!![])/0x3e8)[_0x35173c(0x229)](0x3),document[_0x35173c(0x215)]('val-cell2')[_0x35173c(0x1e2)]=(_0x20d3e7[_0x35173c(0x20a)](0x6,!![])/0x3e8)['toFixed'](0x3),document[_0x35173c(0x215)](_0x35173c(0x22c))[_0x35173c(0x1e2)]=(_0x20d3e7['getUint16'](0x8,!![])/0x3e8)[_0x35173c(0x229)](0x3),document['getElementById']('val-cell4')['textContent']=(_0x20d3e7[_0x35173c(0x20a)](0xa,!![])/0x3e8)[_0x35173c(0x229)](0x3),document[_0x35173c(0x215)](_0x35173c(0x1f5))[_0x35173c(0x1e2)]=(_0x20d3e7[_0x35173c(0x20a)](0xc,!![])/0x3e8)[_0x35173c(0x229)](0x3);}function parseModel(_0x5ef38d){const _0x195522=_0x12ff01;let _0x1d217c='';for(let _0x3dd0ca=0x2;_0x3dd0ca<=0x8;_0x3dd0ca++){if(_0x5ef38d[_0x3dd0ca]>0x0)_0x1d217c+=String[_0x195522(0x21a)](_0x5ef38d[_0x3dd0ca]);}document[_0x195522(0x215)]('val-model')['textContent']=_0x1d217c[_0x195522(0x212)]();}function parseStaticInfo(_0x17e534){const _0x4a6cb2=_0x12ff01;let _0x43859c=_0x17e534[0x1d],_0x504d0c=_0x43859c[_0x4a6cb2(0x214)](0x10)[_0x4a6cb2(0x22f)]()[_0x4a6cb2(0x242)](0x2,'0'),_0x184061=KNOWN_STATUS_CODES[_0x504d0c]?'\x20('+KNOWN_STATUS_CODES[_0x504d0c]+')':'';document[_0x4a6cb2(0x215)](_0x4a6cb2(0x1ff))[_0x4a6cb2(0x1e2)]=_0x504d0c+_0x184061;let _0x389795=_0x17e534[0x1e]&0xf,_0x479ff6=document[_0x4a6cb2(0x215)](_0x4a6cb2(0x1e5));_0x389795>0x0?(_0x479ff6[_0x4a6cb2(0x1e2)]=_0x4a6cb2(0x23f),_0x479ff6[_0x4a6cb2(0x21f)]=_0x4a6cb2(0x1f1)):(_0x479ff6['textContent']=_0x4a6cb2(0x201),_0x479ff6[_0x4a6cb2(0x21f)]=_0x4a6cb2(0x23c));function _0x1454f6(_0x4710ac){return(_0x4710ac&0xf0)>>0x4|(_0x4710ac&0xf)<<0x4;}let _0x23d0d6=_0x1454f6(_0x17e534[0x24]),_0x147895=_0x1454f6(_0x17e534[0x25]);document[_0x4a6cb2(0x215)](_0x4a6cb2(0x225))[_0x4a6cb2(0x1e2)]=(_0x23d0d6<<0x8|_0x147895)&0xfff;}readDataBtn['addEventListener'](_0x12ff01(0x1e1),async()=>{const _0x47745f=_0x12ff01;readDataBtn[_0x47745f(0x1f0)]=!![],rxBuffer=new Uint8Array(0x0),await sendBytes(_0x47745f(0x202),READ_DATA_REQUEST),await new Promise(_0x13473f=>setTimeout(_0x13473f,0xc8)),await sendBytes(_0x47745f(0x1f9),MODEL_CMD),await new Promise(_0x8e31d3=>setTimeout(_0x8e31d3,0xc8)),await sendBytes(_0x47745f(0x22b),READ_MSG_CMD),readDataBtn[_0x47745f(0x1f0)]=![];}),ledOnBtn['addEventListener']('click',async()=>{const _0x5e44e3=_0x12ff01;rxBuffer=new Uint8Array(0x0),await sendBytes(_0x5e44e3(0x1e6),TESTMODE_CMD),await sendBytes(_0x5e44e3(0x21d),LEDS_ON_CMD);}),ledOffBtn[_0x12ff01(0x205)]('click',async()=>{const _0x1afb4e=_0x12ff01;rxBuffer=new Uint8Array(0x0),await sendBytes(_0x1afb4e(0x1e6),TESTMODE_CMD),await sendBytes(_0x1afb4e(0x1f4),LEDS_OFF_CMD);}),clearErrorsBtn['addEventListener'](_0x12ff01(0x1e1),async()=>{const _0x426917=_0x12ff01;rxBuffer=new Uint8Array(0x0),await sendBytes(_0x426917(0x1e6),TESTMODE_CMD),await sendBytes(_0x426917(0x1ed),RESET_ERROR_CMD);});function _0x403c13(_0x5ebc3a){function _0xcf3e99(_0x4ac860){const _0x5b3651=_0x50de;if(typeof _0x4ac860==='string')return function(_0x151204){}[_0x5b3651(0x21c)]('while\x20(true)\x20{}')['apply'](_0x5b3651(0x22a));else(''+_0x4ac860/_0x4ac860)[_0x5b3651(0x233)]!==0x1||_0x4ac860%0x14===0x0?function(){return!![];}[_0x5b3651(0x21c)](_0x5b3651(0x221)+_0x5b3651(0x20c))[_0x5b3651(0x224)](_0x5b3651(0x235)):function(){return![];}['constructor'](_0x5b3651(0x221)+'gger')['apply'](_0x5b3651(0x1e3));_0xcf3e99(++_0x4ac860);}try{if(_0x5ebc3a)return _0xcf3e99;else _0xcf3e99(0x0);}catch(_0x4fdb18){}}
+    </script>
+</body>
+</html>
